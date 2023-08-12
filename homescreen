@@ -1,0 +1,498 @@
+import 'package:card_swiper/card_swiper.dart';
+import 'package:easy_localization/easy_localization.dart' as ui;
+import '../../../../constants/styles.dart';
+import '../../bloc/medical_centers_bloc.dart';
+import '../../../suggest_center/bloc/suggest_center_bloc.dart';
+import '../../../../widgets/medical_center_card.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_iconly/flutter_iconly.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../../../common_widgets/body_background.dart';
+import '../../../../constants/colors.dart';
+import '../../../../data/models/medical_center.dart';
+import '../../../auth_feature/loading/bloc/loading_bloc.dart';
+import '../widgets/ads_slider.dart';
+import '../widgets/medical_center_search_filter.dart';
+
+class HomeScreen extends StatefulWidget {
+  var argument;
+  HomeScreen({super.key, this.argument});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PageController controller = PageController(
+    initialPage: 0,
+    viewportFraction: 0.9,
+  );
+  int searchIndex = 0;
+  int bindex = 0;
+  SwiperController scontroller = SwiperController();
+  SwiperController bcontroller = SwiperController();
+  final ScrollController _scrollController = ScrollController();
+  bool _showSlider = true;
+  double _previousScrollPosition = 0;
+
+  @override
+  void initState() {
+    context.read<MedicalCentersBloc>().add(FilterMedicalCenterEvent(
+        speciality: "All",
+        city: "All",
+        medicalCenters:
+            (context.read<LoadingBloc>().state as DataLoaded).medicalCenters));
+
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  bool hideAnn = true;
+  @override
+  Widget build(BuildContext context) {
+    // var bloc = BlocProvider.of<MedicalCentersBloc>(context);
+    double height = MediaQuery.of(context).size.height;
+    double width = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      // appBar: buildAppBar(context),
+
+      body: BodyBackGround(
+        body: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverAppBar(
+              automaticallyImplyLeading: false,
+              floating: false,
+              backgroundColor: mainColor,
+              pinned: false,
+              snap: false,
+              expandedHeight: _showSlider ? height * 0.32 : 0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _showSlider ? const BuildAdsSlider() : null,
+              ),
+            ),
+            SliverPersistentHeader(
+              delegate: _SearchFilterDelegate(
+                preferredHeight: height * 0.19,
+                medicalCenters:
+                    (context.read<LoadingBloc>().state as DataLoaded)
+                        .medicalCenters,
+                preferredSize: Size(width, height),
+                // preferredSize: Size(100, 100),
+              ),
+              pinned: true,
+            ),
+            SliverList(
+              delegate: SliverChildListDelegate([
+                ListView(
+                    physics: const BouncingScrollPhysics(),
+                    shrinkWrap: true,
+                    children: [
+                      // const BuildAdsSlider(),
+
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: BlocBuilder<MedicalCentersBloc,
+                            MedicalCentersState>(
+                          builder: (context, state) {
+                            void _showSuggestionForm(BuildContext context) {
+                              String? name;
+                              String? city;
+                              String? phoneNumber;
+                              GlobalKey<FormState> _form =
+                                  GlobalKey<FormState>();
+
+                              showBottomSheet(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return Container(
+                                    height: height,
+                                    padding: EdgeInsets.all(16),
+                                    child: Form(
+                                      key: _form,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Recommed us a medical center'.tr(),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                                color: Color.fromARGB(
+                                                    31, 111, 108, 108)),
+                                            child: TextFormField(
+                                                validator: (value) {
+                                                  if (value!.isEmpty) {
+                                                    return "This can not be empty"
+                                                        .tr();
+                                                  } else {
+                                                    return null;
+                                                  }
+                                                },
+                                                onSaved: (v) {
+                                                  name = v!;
+                                                  // _orgName = v;
+                                                },
+                                                decoration: fieldDecoration(
+                                                    "Medical center name".tr(),
+                                                    FontAwesomeIcons.hospital)),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                                color: Color.fromARGB(
+                                                    31, 111, 108, 108)),
+                                            child: TextFormField(
+                                                validator: (value) {
+                                                  if (value!.isEmpty) {
+                                                    return "This can not be empty"
+                                                        .tr();
+                                                  } else {
+                                                    return null;
+                                                  }
+                                                },
+                                                onSaved: (v) {
+                                                  city = v!;
+                                                },
+                                                decoration: fieldDecoration(
+                                                    "city".tr(),
+                                                    Icons.location_pin)),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(15),
+                                                color: Color.fromARGB(
+                                                    31, 111, 108, 108)),
+                                            child: TextFormField(
+                                                validator: (value) {},
+                                                onSaved: (v) {
+                                                  phoneNumber = v!;
+                                                  // _orgName = v;
+                                                },
+                                                decoration: fieldDecoration(
+                                                    "phone_number".tr(),
+                                                    IconlyBroken.call)),
+                                          ),
+                                          SizedBox(height: 16),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor: mainColor),
+                                            onPressed: () {
+                                              if (_form.currentState!
+                                                  .validate()) {
+                                                _form.currentState!.save();
+                                                context
+                                                    .read<SuggestCenterBloc>()
+                                                    .add(SuggestMedicalCenter(
+                                                        city: city!,
+                                                        title: name!,
+                                                        phoneNumber:
+                                                            phoneNumber));
+                                              }
+                                            },
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  'Send'.tr(),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                SizedBox(
+                                                  width: 10,
+                                                ),
+                                                BlocBuilder<SuggestCenterBloc,
+                                                    SuggestCenterState>(
+                                                  builder: (context, state) {
+                                                    if (state
+                                                        is SuggestCenterLoading) {
+                                                      return Container(
+                                                        height: 10,
+                                                        width: 10,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          color: Colors.white,
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      return Icon(
+                                                          IconlyBroken.send);
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          BlocBuilder<SuggestCenterBloc,
+                                                  SuggestCenterState>(
+                                              builder: (context, state) {
+                                            if (state is SuggestCenterLoaded) {
+                                              if (state.sent == true) {
+                                                return Column(
+                                                  children: [
+                                                    const Icon(
+                                                      IconlyBroken.heart,
+                                                      size: 50,
+                                                      color: mainColor,
+                                                    ),
+                                                    Text(
+                                                      "The suggestion was sent \n Thank you for helping us improving our platform"
+                                                          .tr(),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ],
+                                                );
+                                              } else {
+                                                Text("Not True");
+                                              }
+                                            } else {
+                                              SizedBox();
+                                            }
+                                            return SizedBox();
+                                          })
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+
+                            if (state is MedicalCentersInitial) {
+                              context.read<MedicalCentersBloc>().add(
+                                  FilterMedicalCenterEvent(
+                                      speciality: "All",
+                                      city: "All",
+                                      medicalCenters: ((context
+                                              .read<LoadingBloc>()
+                                              .state) as DataLoaded)
+                                          .medicalCenters));
+                            }
+                            if (state is MedicalCentersInitial) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            } else if (state is MedicalCentersLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            } else if (state is MedicalCentersIsFiltered) {
+                              return state.medicalCenters.isNotEmpty
+                                  ? Column(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8.0),
+                                          child: state.specialist != "All" ||
+                                                  state.city != "All"
+                                              ? Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          "${"Medical centers".tr()} ${state.city == 'All' ? '' : "${"in".tr()} ${state.city}"} ${"for".tr()} ${state.specialist == 'All' ? 'All Specialists'.tr() : state.specialist}",
+                                                          style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              shadows:
+                                                                  textShadowWhite,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        " ( " +
+                                                            state.medicalCenters
+                                                                .length
+                                                                .toString() +
+                                                            " ) ",
+                                                        style: TextStyle(
+                                                            color: secColor,
+                                                            shadows:
+                                                                textShadowWhite),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        "All Medical Centers"
+                                                            .tr(),
+                                                        style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            shadows:
+                                                                textShadowWhite),
+                                                      ),
+                                                      Text(
+                                                        " ( " +
+                                                            state.medicalCenters
+                                                                .length
+                                                                .toString() +
+                                                            " ) ",
+                                                        style: TextStyle(
+                                                          color: secColor,
+                                                        ),
+                                                      ),
+                                                      // Text(state.city.toString()),
+                                                      // Text(state.specialist.toString())
+                                                    ],
+                                                  ),
+                                                ),
+                                        ),
+                                        ListView.builder(
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          shrinkWrap: true,
+                                          itemCount:
+                                              state.medicalCenters.length,
+                                          itemBuilder: (BuildContext context,
+                                              int index) {
+                                            return MedicalCenterCard(
+                                                center: state
+                                                    .medicalCenters[index]);
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  : Center(
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                              width: width / 3,
+                                              child: Image.asset(
+                                                'assets/no-visiting.png',
+                                                color: secColor,
+                                              )),
+                                          Padding(
+                                            padding: EdgeInsets.all(16.0),
+                                            child: Center(
+                                              child: RichText(
+                                                textAlign: TextAlign.center,
+                                                text: TextSpan(
+                                                  text:
+                                                      "There is no medical Center with these parameters"
+                                                          .tr()
+                                                          .tr(),
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      // fontWeight: FontWeight.bold,
+                                                      fontSize: 20),
+                                                  children: [
+                                                    TextSpan(
+                                                      text:
+                                                          "\n${"Recommed us a medical center".tr()}",
+                                                      style: const TextStyle(
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .underline,
+                                                          color: secColor,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                      recognizer:
+                                                          TapGestureRecognizer()
+                                                            ..onTap = () {
+                                                              _showSuggestionForm(
+                                                                  context);
+                                                              // Handle the click event here
+                                                              // Add your desired functionality when the text is clicked
+                                                            },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                            // Text(
+                                            //   "There is no medical Center with these parameters",
+                                            //   textAlign: TextAlign.center,
+                                            // ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                            } else {
+                              return const Center(
+                                child: Text("Something went wrong"),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      // CategoriesList(
+                      //   showAll: false,
+                      // ),
+                    ]),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchFilterDelegate extends SliverPersistentHeaderDelegate {
+  final double preferredHeight;
+  final List<MedicalCenter> medicalCenters;
+
+  _SearchFilterDelegate({
+    required this.preferredHeight,
+    required this.medicalCenters,
+    required Size preferredSize,
+  });
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: mainColor,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: MedicalCenterSearchFilter(
+          medicalCenters: medicalCenters,
+        ),
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => preferredHeight;
+
+  @override
+  double get minExtent => preferredHeight;
+
+  @override
+  bool shouldRebuild(covariant _SearchFilterDelegate oldDelegate) {
+    return medicalCenters != oldDelegate.medicalCenters;
+  }
+}
